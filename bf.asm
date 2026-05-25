@@ -9,7 +9,7 @@ tape:
 
 .section .data
 code:
-  .ascii "+++>>><<<---."
+  .ascii "+++>>><<<---.\n"
 
 .section .text
   .global _start
@@ -21,8 +21,7 @@ _start:
   mov rdx, 14       
   syscall
  
-read:
-  mov rax, [rsp]
+  mov rax, 2  # make open syscall 
   mov rdi, [rsp+16]
   mov rsi, 0
   mov rdx, 0 
@@ -32,11 +31,11 @@ read:
   jle close
   mov r12, rax # to preserve the file discrpertor
 
-read_loop:
+read:
   # Read from file (sys_read)
   mov rax, 0          # syscall number for read
-  mov rdi,         # 1st arg: fd 
-  lea rsi, src     # 2nd arg: buffer address
+  mov rdi,  r12      # 1st arg: fd 
+  lea rsi, [rip+src]     # 2nd arg: buffer address
   mov rdx, 30000       # 3rd arg: max bytes to read
   syscall
  
@@ -47,11 +46,11 @@ read_loop:
   #Write buffer to stdout (sys_write)
   mov rdx, rax        # Bytes to write (from read)
   mov rax, 1          # syscall number for write
-  lea rsi, src     # 2nd arg: buffer address
+  lea rsi, [rip+src]     # 2nd arg: buffer address
   mov rdi, 1          # 1st arg: stdout (FD=1)
   syscall
  
-  jmp read_loop       # Repeat until EOF
+  jmp read      # Repeat until EOF
  
 close:
   # Close the file
@@ -65,21 +64,17 @@ close:
   syscall
 
 m:
-  .loop:
-    mov     al, [edi]
-    test    al, al
-    jz      exit
-
+  mov al, byte ptr [rip+src+1] 
   .check_plus:
     cmp al, '+'
     jne .check_minus
-    inc byte PTR [esi]
+    inc byte PTR [tape]
     jmp .next
 
   .check_minus:
     cmp al, '-'
     jne .check_left
-    dec byte PTR [esi]
+    dec byte PTR [tape]
     jmp .next
 
   .check_left:
@@ -144,8 +139,8 @@ m:
 #    jmp .find_end
 
   .next:
-    inc edi
-    jmp .loop
+    inc byte ptr src
+    jmp m
 
 exit:
   mov rax, 60
