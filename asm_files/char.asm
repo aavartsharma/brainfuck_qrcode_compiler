@@ -1,11 +1,11 @@
 .intel_syntax noprefix
-.global _start
 
 .section .data
 hello:
     .ascii "hello world!\n"
 
-.section .text
+.text
+  .globl _start
 _start:
     mov rax, 1        
     mov rdi, 1       
