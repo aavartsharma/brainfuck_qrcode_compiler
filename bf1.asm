@@ -74,8 +74,7 @@ close:
 # interpreter loop
 # -------------------------
 m:
-  mov al, [r13]
-
+  mov al, [r13] 
   cmp al, 0
   je exit
 
@@ -102,6 +101,8 @@ m:
   .dot:
     cmp al, '.'
     jne .comma 
+    .test3:
+      cmp r8,0
     mov rax, 1
     mov rdi, 1
     mov rdx, 1
@@ -122,12 +123,30 @@ m:
   .lb:
     cmp al, '['
     jne .rb
+    .test:
+      cmp r8,0
+    lea r8, [r13]
+    push r8
+    lea r8, [r9]
+    push r8
 
   .rb:
     cmp al, ']'
     jne .loopb
-    jmp m
-
+    .test2:
+      cmp r8,0
+    mov al, [r9]
+    cmp al, 0
+    jne .rep
+    .end:
+      .test4:
+        cmp r8,0
+      pop r8
+      pop r8
+      jmp .loopb
+    .rep:
+      mov r13, [rsp+8] 
+      
   .loopb:
     inc r13
     jmp m

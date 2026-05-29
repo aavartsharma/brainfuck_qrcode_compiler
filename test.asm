@@ -22,7 +22,6 @@ _start:
   lea rsi, [hello]  
   mov rdx, 14       
   syscall
-  jmp read
 
 read:
   mov rax, [rsp]

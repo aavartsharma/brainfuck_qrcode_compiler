@@ -11,7 +11,7 @@ void m(unsigned char *tape,char *src){
     else if ((*src)==',') *tape = (unsigned char)fgetc(stdin);
     else if ((*src)=='[') {
       while(*tape) m(tape,src+1);
-      while(*src!=']') src++; 
+      while(*src!=']') src++; // logic error here
     }
     else if ((*src)==']') return;
     src++;
