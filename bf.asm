@@ -1,149 +1,106 @@
 .intel_syntax noprefix
 
 .section .bss
-
-src:
-  .space 30000
-tape:
-  .space 30000
-
-.section .data
-code:
-  .ascii "+++>>><<<---.\n"
+src: .space 30000
+tape: .space 30000
 
 .section .text
-  .global _start
+.global _start
 
 _start:
-  mov rax, 1        
-  mov rdi, 1       
-  lea rsi, [code]  
-  mov rdx, 14       
+# -------------------------
+# open file (ARGV safe)
+# -------------------------
+  mov rdi, [rsp + 16]     # argv[1]
+  mov rax, 2              # open (simple version)
+  xor rsi, rsi            # O_RDONLY
+  xor rdx, rdx
   syscall
- 
-  mov rax, 2  # make open syscall 
-  mov rdi, [rsp+16]
-  mov rsi, 0
-  mov rdx, 0 
-  syscall
-
   cmp rax, 0
-  jle close
-  mov r12, rax # to preserve the file discrpertor
-
+  jle exit
+  mov r12, rax           # fd
 read:
-  # Read from file (sys_read)
-  mov rax, 0          # syscall number for read
-  mov rdi,  r12      # 1st arg: fd 
-  lea rsi, [rip+src]     # 2nd arg: buffer address
-  mov rdx, 30000       # 3rd arg: max bytes to read
+  mov rax, 0
+  mov rdi, r12
+  lea rsi, [rip + src]
+  mov rdx, 30000
   syscall
- 
-  # Exit on EOF (rax == 0) or error (rax < 0)
   cmp rax, 0
-  jle close
-
-  #Write buffer to stdout (sys_write)
-  mov rdx, rax        # Bytes to write (from read)
-  mov rax, 1          # syscall number for write
-  lea rsi, [rip+src]     # 2nd arg: buffer address
-  mov rdi, 1          # 1st arg: stdout (FD=1)
-  syscall
- 
-  jmp read      # Repeat until EOF
- 
+  jg read
 close:
-  # Close the file
   mov rax, 3
-  syscall             # rdi still holds FD
-
-  mov rax, 1        
-  mov rdi, 1       
-  lea rsi, [code]  
-  mov rdx, 14       
+  mov rdi, r12
   syscall
-
+  lea r13, [rip + src]   # instruction pointer
+  lea r9, [rip + tape]   # data pointer
 m:
-  mov al, byte ptr [rip+src+1] 
-  .check_plus:
+  mov al, [r13] 
+  cmp al, 0
+  je exit
+
+  .plus:
     cmp al, '+'
-    jne .check_minus
-    inc byte PTR [tape]
-    jmp .next
+    jne .minus
+    inc byte ptr [r9]
 
-  .check_minus:
+  .minus:
     cmp al, '-'
-    jne .check_left
-    dec byte PTR [tape]
-    jmp .next
+    jne .left
+    dec byte ptr [r9]
 
-  .check_left:
+  .left:
     cmp al, '<'
-    jne .check_right
-    dec esi
-    jmp .next
+    jne .right
+    dec r9
 
-  .check_right:
+  .right:
     cmp al, '>'
-    jne .check_dot
-    inc esi
-    jmp .next
+    jne .dot
+    inc r9
 
-  .check_dot:
+  .dot:
     cmp al, '.'
-    jne .check_comma
+    jne .comma 
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, 1
+    mov rsi, r9
+    syscall
 
-    jmp .next
-
-  .check_comma:
+  .comma:
     cmp al, ','
-    jne .check_left
+    jne .lb
+    xor rax, rax
+    xor rdi, rdi
+    syscall
+    mov [r9], al
 
-    jmp .next
-
-  .check_l:
+  .lb:
     cmp al, '['
-    jne .check_r
-    #mov r5, [esi]
-    #.r:
-    #  cmp al,
-    #  jge .next
-      
-    #.j:
-      #cmp al,
-    jmp .next
+    jne .rb
+    lea r8, [r13]
+    push r8
+    lea r8, [r9]
+    push r8
 
-  .check_r:
+  .rb:
     cmp al, ']'
-    jne .next
-    jmp exit 
-
-#  .loop_rec:
-#    cmp byte ptr [esi], 0
-#    je  .skip_loop
-
-#    lea eax, [edi+1]
-#    push eax             
-#    push esi             # tape
-#    call m
-#    add esp, 8
-
-#    jmp .loop_rec
-
-#.skip_loop:
-#  .find_end:
-#    cmp byte [edi], ']'
-#    je .next
-
-#    inc edi
-#    jmp .find_end
-
-  .next:
-    inc byte ptr src
+    jne .loopb
+    mov al, [r9]
+    cmp al, 0
+    jne .rep
+    pop r8
+    pop r8
+    jmp .loopb
+    .rep:
+      mov r13, [rsp+8] 
+      
+  .loopb:
+    inc r13
     jmp m
 
+# -------------------------
 exit:
   mov rax, 60
   xor rdi, rdi
-  syscall
-  
+  syscall 

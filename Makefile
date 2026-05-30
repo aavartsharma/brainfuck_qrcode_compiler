@@ -1,9 +1,6 @@
-all: 
+all: compile/as
 
 compile/as: 
-	as --strip-local-absolute test.S -o test.o
-	ld -N -s -o bf3 test.o
-	ls -lh | grep 
+	as --strip-local-absolute bf.asm -o bf.o
+	ld -N -s -o bf bf.o
 
-compile/nasm:
-	nasm test.S
